@@ -11,7 +11,7 @@ public:
     void Init();
     void Update() override;
     void Render() override;
-    //void EntityPropertyWindow();
+    void SetupDocking();
     void Shutdown();
     RenderTexture2D ViewportTexture;
 

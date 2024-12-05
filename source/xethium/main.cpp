@@ -1,3 +1,12 @@
+/*
+	TODO:
+	TEXTURING
+	FINISH COMPONENT SYSTEM
+	AUTO DOCKING
+	FINISH THE CMD DEBUGGING
+
+*/
+
 #include "Engine.h"
 
 int main() {

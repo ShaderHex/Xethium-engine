@@ -5,10 +5,8 @@
 struct Entity {
     Vector2 position = { 0, 0 };
     Vector2 size = { 0, 0 };
-    //unsigned int r;
-    //unsigned int g;
-    //unsigned int b;
     Color color = { 255, 255, 255 };
+    Texture2D texture = { 0 };
 };
 
 class Component {
@@ -17,9 +15,11 @@ public:
     static Entity entities[MAX_ENTITIES];
     static int entityCount;
     static int selectedEntity;
+    static const char* texturePath;
 
-    // Functions to create, update, and render entities
-    static void CreateEntity(Vector2 position, Vector2 size, Color color);
+    static void CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath);
     static void UpdateEntities(float deltaTime);
     static void RenderEntities();
+    static void PrintEntities();
+    static void Shutdown();
 };

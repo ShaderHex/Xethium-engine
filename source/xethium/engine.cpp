@@ -1,12 +1,4 @@
-/*
-    TODO:
-    FINISH COMPONENT SYSTEM
-    AUTO DOCKING
-    FINISH THE CMD DEBUGGING
-
-*/
-
-
+#define IMGUI_HAS_DOCK
 #include "raylib.h"
 #include "Engine.h"
 #include "Panel.h" 
@@ -19,6 +11,7 @@
 #include "rlgl.h"
 #include "imgui_impl_raylib.h"
 #include "Component.h"
+#include "imgui_internal.h"
 
 #define DEBUG_RESET   "\033[0m"
 #define DEBUG_RED     "\033[31m"
@@ -53,6 +46,9 @@ void PrintError(const std::string& message) {
     std::cout << DEBUG_RED << "[ERROR] " << DEBUG_RESET << message << std::endl;
 }
 
+bool isTextured = false;
+char TextureDir[128] = "C:/Users/barko/Documents/projects/xethium-engine/xethium engine/resources";
+
 bool Engine::Init() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     SetTraceLogLevel(LOG_ERROR);
@@ -72,7 +68,6 @@ bool Engine::Init() {
 #ifdef IMGUI_HAS_DOCK
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 #endif
-
     return !WindowShouldClose();
 }
 
@@ -99,6 +94,10 @@ void Engine::Update() {
 }
 
 void Engine::Renderer() {
+    Texture2D texture = LoadTexture(TextureDir);
+    Texture2D textures = LoadTexture(Component::texturePath);
+    Vector2 mousePos = GetMousePosition();
+
     ImGui_ImplRaylib_ProcessEvents();
     ImGui_ImplRaylib_NewFrame();
     //ImGui::NewFrame();
@@ -114,8 +113,12 @@ void Engine::Renderer() {
     BeginTextureMode(panel.ViewportTexture);
     ClearBackground(DARKGRAY);
 
+
     // Begin drawing in 2D mode for the game objects
     BeginMode2D(cameraController.GetCamera());
+
+    bool inCollision = CheckCollisionPointRec(mousePos, { Component::entities[0].position.x, Component::entities[0].position.y, Component::entities[0].size.x, Component::entities[0].size.y });
+    DrawTextureEx(textures, { 50, 50 }, 0.0f, 1.0f, WHITE);
     //cube.Render();
     Component::RenderEntities();
     grid.Render(cameraController.GetCamera());
@@ -127,19 +130,45 @@ void Engine::Renderer() {
     // Start a new ImGui frame
     rlImGuiBegin();  // Begin ImGui rendering with Raylib
 
+    ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
+
+    // If the viewport size has changed, update the docking layout size
+    static ImVec2 previous_size = ImVec2(0, 0);
+    if (viewport_size.x != previous_size.x || viewport_size.y != previous_size.y) {
+        // Update the docking space size to the new viewport size
+        ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
+        ImGui::DockBuilderSetNodeSize(dockspace_id, viewport_size);
+
+        previous_size = viewport_size;
+    }
+
 #ifdef IMGUI_HAS_DOCK
-    ImGui::DockSpaceOverViewport(0, NULL, ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID, NULL, ImGuiDockNodeFlags_PassthruCentralNode);
 #endif
 
+
     //panel.EntityPropertyWindow();
+    panel.SetupDocking();
 
     // Render ImGui windows
-    if (ImGui::Begin("Viewport")) {
+    if (ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         rlImGuiImageRenderTextureFit(&(panel.ViewportTexture), true);
+        ImVec2 viewportPos = ImGui::GetWindowPos();
+        ImVec2 viewportSize = ImGui::GetWindowSize();
+
+        // Convert screen mouse position to window-relative coordinates
+        Vector2 localMousePos = { mousePos.x - viewportPos.x, mousePos.y - viewportPos.y };
+
+        // Now you can check for collision within the ImGui window space
+        bool inTextureCollision = CheckCollisionPointRec(localMousePos, { Component::entities[0].position.x, Component::entities[0].position.y, Component::entities[0].size.x, Component::entities[0].size.y });
+
+        if (inTextureCollision) {
+            std::cout << "Colided\n";
+        }
     }
     ImGui::End();
 
-    if (ImGui::Begin("Inspector")) {
+    if (ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         ImGui::InputInt("Input ID: ", &Component::selectedEntity);
         if (Component::selectedEntity >= 0 && Component::selectedEntity < Component::entityCount) {
             Entity& entity = Component::entities[Component::selectedEntity];
@@ -183,26 +212,42 @@ void Engine::Renderer() {
                 entity.color.a = (unsigned char)(color[3] * 255.0f);
             }
 
+            ImGui::Checkbox(" :Texture", &isTextured);
+            if (isTextured) {
+                ImGui::InputText(" :Dir", TextureDir, sizeof(TextureDir));
+
+
+                if (texture.width == 0 || texture.height == 0) {
+                    //printf("Failed to load texture!\n");
+                }
+                else {
+                    //printf("Loaded!\n");
+                    UnloadTexture(texture);
+                }
+
+                
+            }
         }
     }
     ImGui::End();
 
-    if (ImGui::Begin("Components")) {
+    if (ImGui::Begin("Components", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         if (ImGui::Button("Add Component")) {
-            Component::CreateEntity({ 50, 50 }, { 100, 100 }, RED);
+            Component::CreateEntity({ 50, 50 }, { 100, 100 }, RED, Component::texturePath);
+            //TextureDir = LoadTexture(Component::texturePath);
+            component.PrintEntities();
         }
+        
     }
     ImGui::End();
 
 
-    if (ImGui::Begin("File Manager")) {
+    if (ImGui::Begin("File Manager", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         ImGui::TextUnformatted("This is where you manage files.");
     }
     ImGui::End();
 
-
-   
-
+    
 
     // End ImGui rendering with Raylib
     rlImGuiEnd();

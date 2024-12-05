@@ -3,6 +3,7 @@
 #include <iostream>
 
 float cameraMoveSpeed = 0.0;
+float cameraZoomSpeed = 0.0;
 
 Camera2DController::Camera2DController() {
     camera.target = { 0.0f, 0.0f };    // Where the camera looks at
@@ -13,6 +14,7 @@ Camera2DController::Camera2DController() {
 
 void Camera2DController::Init() {
     cameraMoveSpeed = 500.0f;
+    cameraZoomSpeed = 1.0f;
 }
 
 void Camera2DController::Update() {
@@ -35,12 +37,10 @@ void Camera2DController::Update() {
 
     // Zoom handling
     if (IsKeyDown(KEY_Q)) {
-        camera.zoom += 0.00005f;
-        std::cout << "ZOOMING IN\n";
+        camera.zoom += cameraZoomSpeed * deltaTime;
     }  // Zoom in
     if (IsKeyDown(KEY_E)) {
-        camera.zoom -= 0.00005f;
-        std::cout << "ZOOMING OUT\n";
+        camera.zoom -= cameraZoomSpeed * deltaTime;
     }  // Zoom out
 
 }
