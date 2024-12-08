@@ -19,6 +19,7 @@ struct Entity {
 void CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath = nullptr);
 void RenderEntities();
 void CleanupEntities();
+Texture2D LoadTextureFromCache(const char* texturePath);
 
 // Global Variables
 extern std::vector<Entity> entities;

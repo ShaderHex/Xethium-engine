@@ -6,6 +6,8 @@
 #include "Grid.h"
 #include "Component.h"
 
+extern bool isTextured;
+
 class Engine {
 public:
     bool Init();

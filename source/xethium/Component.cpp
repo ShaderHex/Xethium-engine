@@ -1,8 +1,11 @@
 #include "Component.h"
+#include <unordered_map>
+#include "Engine.h"
 
 // Global Variables
 std::vector<Entity> entities;
 int selectedEntity = -1; // No entity selected by default
+std::unordered_map<std::string, Texture2D> textureCache;
 
 // Create a new entity
 void CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath) {
@@ -14,15 +17,29 @@ void CreateEntity(Vector2 position, Vector2 size, Color color, const char* textu
     entities.push_back(entity);
 }
 
+Texture2D LoadTextureFromCache(const char* texturePath) {
+    if (textureCache.find(texturePath) != textureCache.end()) {
+        return textureCache[texturePath];
+    }
+
+    // Load and cache the texture
+    Texture2D texture = LoadTexture(texturePath);
+    textureCache[texturePath] = texture;
+    return texture;
+}
+
 // Render all entities
 void RenderEntities() {
     for (const Entity& entity : entities) {
-        if (entity.hasTexture) {
-            DrawTextureEx(entity.texture, entity.position, 0.0f, 1.0f, WHITE);
+        if (isTextured) {
+            if (entity.hasTexture) {
+                DrawTextureEx(entity.texture, entity.position, 0.0f, 1.0f, WHITE);
+            }
         }
         else {
             DrawRectangleV(entity.position, entity.size, entity.color);
         }
+        
     }
 }
 

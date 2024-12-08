@@ -93,7 +93,7 @@ void Engine::Update() {
 }
 
 void Engine::Renderer() {
-    Texture2D texture = LoadTexture(texturePathBuffer);
+    Texture2D texture = LoadTextureFromCache(texturePathBuffer);
     Vector2 mousePos = GetMousePosition();
 
     ImGui_ImplRaylib_ProcessEvents();
@@ -162,15 +162,18 @@ void Engine::Renderer() {
                 }
             }
             if (ImGui::CollapsingHeader("Texture")) {
-                ImGui::InputText("Texture Path", texturePathBuffer, sizeof(texturePathBuffer));
+                ImGui::Checkbox("Is Textured", &isTextured);
+                    if (isTextured) {
+                        ImGui::InputText("Texture Path", texturePathBuffer, sizeof(texturePathBuffer));
 
-                if (ImGui::Button("Apply Texture")) {
-                    if (entity.hasTexture) {
-                        UnloadTexture(entity.texture);
+                        if (ImGui::Button("Apply Texture")) {
+                            if (entity.hasTexture) {
+                                UnloadTexture(entity.texture);
+                            }
+                            entity.texture = LoadTexture(texturePathBuffer);
+                            entity.hasTexture = (entity.texture.id != 0);
+                        }
                     }
-                    entity.texture = LoadTexture(texturePathBuffer);
-                    entity.hasTexture = (entity.texture.id != 0);
-                }
             }
         }
     }
