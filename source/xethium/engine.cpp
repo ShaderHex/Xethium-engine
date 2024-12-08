@@ -47,7 +47,7 @@ void PrintError(const std::string& message) {
 }
 
 bool isTextured = false;
-char TextureDir[128] = "C:/Users/barko/Documents/projects/xethium-engine/xethium engine/resources";
+char texturePathBuffer[256] = "";
 
 bool Engine::Init() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -87,58 +87,41 @@ void Engine::Shutdown() {
 
 void Engine::Update() {
     cameraController.Update();
-    cube.Update();
     grid.Update();
     panel.Update();
     printf("");
 }
 
 void Engine::Renderer() {
-    Texture2D texture = LoadTexture(TextureDir);
-    Texture2D textures = LoadTexture(Component::texturePath);
+    Texture2D texture = LoadTexture(texturePathBuffer);
     Vector2 mousePos = GetMousePosition();
 
     ImGui_ImplRaylib_ProcessEvents();
     ImGui_ImplRaylib_NewFrame();
-    //ImGui::NewFrame();
 
-    // Begin drawing to the screen
     BeginDrawing();
     ClearBackground(BLACK);
 
     int windowWidth = GetScreenWidth();
     int windowHeight = GetScreenHeight();
 
-    // Prepare to render to a texture (for the viewport)
     BeginTextureMode(panel.ViewportTexture);
     ClearBackground(DARKGRAY);
 
-
-    // Begin drawing in 2D mode for the game objects
     BeginMode2D(cameraController.GetCamera());
-
-    bool inCollision = CheckCollisionPointRec(mousePos, { Component::entities[0].position.x, Component::entities[0].position.y, Component::entities[0].size.x, Component::entities[0].size.y });
-    DrawTextureEx(textures, { 50, 50 }, 0.0f, 1.0f, WHITE);
-    //cube.Render();
-    Component::RenderEntities();
     grid.Render(cameraController.GetCamera());
+    RenderEntities();
     EndMode2D();
 
-    // End rendering to the texture
     EndTextureMode();
 
-    // Start a new ImGui frame
-    rlImGuiBegin();  // Begin ImGui rendering with Raylib
+    rlImGuiBegin();
 
     ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
-
-    // If the viewport size has changed, update the docking layout size
     static ImVec2 previous_size = ImVec2(0, 0);
     if (viewport_size.x != previous_size.x || viewport_size.y != previous_size.y) {
-        // Update the docking space size to the new viewport size
         ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
         ImGui::DockBuilderSetNodeSize(dockspace_id, viewport_size);
-
         previous_size = viewport_size;
     }
 
@@ -146,114 +129,77 @@ void Engine::Renderer() {
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID, NULL, ImGuiDockNodeFlags_PassthruCentralNode);
 #endif
 
-
-    //panel.EntityPropertyWindow();
     panel.SetupDocking();
 
-    // Render ImGui windows
     if (ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         rlImGuiImageRenderTextureFit(&(panel.ViewportTexture), true);
-        ImVec2 viewportPos = ImGui::GetWindowPos();
-        ImVec2 viewportSize = ImGui::GetWindowSize();
-
-        // Convert screen mouse position to window-relative coordinates
-        Vector2 localMousePos = { mousePos.x - viewportPos.x, mousePos.y - viewportPos.y };
-
-        // Now you can check for collision within the ImGui window space
-        bool inTextureCollision = CheckCollisionPointRec(localMousePos, { Component::entities[0].position.x, Component::entities[0].position.y, Component::entities[0].size.x, Component::entities[0].size.y });
-
-        if (inTextureCollision) {
-            std::cout << "Colided\n";
-        }
     }
     ImGui::End();
 
     if (ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
-        ImGui::InputInt("Input ID: ", &Component::selectedEntity);
-        if (Component::selectedEntity >= 0 && Component::selectedEntity < Component::entityCount) {
-            Entity& entity = Component::entities[Component::selectedEntity];
+        if (selectedEntity >= 0 && selectedEntity < entities.size()) {
+            Entity& entity = entities[selectedEntity];
 
-            ImGui::TextUnformatted("Cube Position:\n");
-            ImGui::TextUnformatted("\n");
-            
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-            ImGui::TextUnformatted("X:");
-            ImGui::DragFloat("Position X-axis", (float*)&entity.position.x, 2.0f, 1.0f);
-            ImGui::PopStyleColor();
+            if (ImGui::CollapsingHeader("Position"))
+            {
+                ImGui::Text("Cube Position:");
+                ImGui::DragFloat("Position X-axis", &entity.position.x, 2.0f, 1.0f);
+                ImGui::DragFloat("Position Y-axis", &entity.position.y, 2.0f, 1.0f);
 
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 1.0f, 1.0f));
-            ImGui::TextUnformatted("Y:");
-            ImGui::DragFloat("Position Y-axis", (float*)&entity.position.y, 2.0f, 1.0f);
-            ImGui::PopStyleColor();
-            
-            ImGui::Text("Cube Size:");
-            ImGui::Text("\n");
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-            ImGui::TextUnformatted("X:");
-            ImGui::DragFloat("Size X-axis", (float*)&entity.size.x, 2.0f, 1.0f);
-            ImGui::PopStyleColor();
+                ImGui::Text("Cube Size:");
+                ImGui::DragFloat("Size X-axis", &entity.size.x, 2.0f, 1.0f);
+                ImGui::DragFloat("Size Y-axis", &entity.size.y, 2.0f, 1.0f);
 
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 1.0f, 1.0f));
-            ImGui::TextUnformatted("Y:");
-            ImGui::DragFloat("Size Y-axis", (float*)&entity.size.y, 2.0f, 1.0f);
-            ImGui::PopStyleColor();
-            
-            float color[4]{
-                entity.color.r / 255.0f,
-                entity.color.g / 255.0f,
-                entity.color.b / 255.0f,
-                entity.color.a / 255.0f,
-            };
-
-            if (ImGui::ColorEdit3("Color", color)) {
-                entity.color.r = (unsigned char)(color[0] * 255.0f);
-                entity.color.g = (unsigned char)(color[1] * 255.0f);
-                entity.color.b = (unsigned char)(color[2] * 255.0f);
-                entity.color.a = (unsigned char)(color[3] * 255.0f);
+                float color[3] = {
+                    entity.color.r / 255.0f,
+                    entity.color.g / 255.0f,
+                    entity.color.b / 255.0f
+                };
+                if (ImGui::ColorEdit3("Color", color)) {
+                    entity.color.r = (unsigned char)(color[0] * 255.0f);
+                    entity.color.g = (unsigned char)(color[1] * 255.0f);
+                    entity.color.b = (unsigned char)(color[2] * 255.0f);
+                }
             }
+            if (ImGui::CollapsingHeader("Texture")) {
+                ImGui::InputText("Texture Path", texturePathBuffer, sizeof(texturePathBuffer));
 
-            ImGui::Checkbox(" :Texture", &isTextured);
-            if (isTextured) {
-                ImGui::InputText(" :Dir", TextureDir, sizeof(TextureDir));
-
-
-                if (texture.width == 0 || texture.height == 0) {
-                    //printf("Failed to load texture!\n");
+                if (ImGui::Button("Apply Texture")) {
+                    if (entity.hasTexture) {
+                        UnloadTexture(entity.texture);
+                    }
+                    entity.texture = LoadTexture(texturePathBuffer);
+                    entity.hasTexture = (entity.texture.id != 0);
                 }
-                else {
-                    //printf("Loaded!\n");
-                    UnloadTexture(texture);
-                }
-
-                
             }
         }
     }
     ImGui::End();
 
     if (ImGui::Begin("Components", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
-        if (ImGui::Button("Add Component")) {
-            Component::CreateEntity({ 50, 50 }, { 100, 100 }, RED, Component::texturePath);
-            //TextureDir = LoadTexture(Component::texturePath);
-            component.PrintEntities();
+        ImGui::Text("Entities:");
+        for (size_t i = 0; i < entities.size(); i++) {
+            if (ImGui::Selectable(("Entity " + std::to_string(i)).c_str(), selectedEntity == (int)i)) {
+                selectedEntity = i;
+            }
         }
-        
+
+        if (ImGui::Button("Add Component")) {
+            CreateEntity({ 400, 300 }, { 50, 50 }, BLUE, nullptr);
+        }
     }
     ImGui::End();
-
 
     if (ImGui::Begin("File Manager", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         ImGui::TextUnformatted("This is where you manage files.");
     }
     ImGui::End();
 
-    
-
-    // End ImGui rendering with Raylib
     rlImGuiEnd();
     ImGui_ImplRaylib_RenderDrawData(ImGui::GetDrawData());
     EndDrawing();
 }
+
 
 void Engine::Render() {
     // Additional render logic if necessary

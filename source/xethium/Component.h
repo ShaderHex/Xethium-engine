@@ -1,25 +1,27 @@
-#pragma once
+#ifndef ENTITY_H
+#define ENTITY_H
 
 #include "raylib.h"
+#include <vector>
+#include <string>
 
+// Entity Structure
 struct Entity {
-    Vector2 position = { 0, 0 };
-    Vector2 size = { 0, 0 };
-    Color color = { 255, 255, 255 };
-    Texture2D texture = { 0 };
+    Vector2 position;
+    Vector2 size;
+    Color color;
+    bool hasTexture;
+    Texture2D texture;
+    std::string texturePath; // To store the texture path for later use
 };
 
-class Component {
-public:
-    static const int MAX_ENTITIES = 100;
-    static Entity entities[MAX_ENTITIES];
-    static int entityCount;
-    static int selectedEntity;
-    static const char* texturePath;
+// Functions
+void CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath = nullptr);
+void RenderEntities();
+void CleanupEntities();
 
-    static void CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath);
-    static void UpdateEntities(float deltaTime);
-    static void RenderEntities();
-    static void PrintEntities();
-    static void Shutdown();
-};
+// Global Variables
+extern std::vector<Entity> entities;
+extern int selectedEntity;
+
+#endif // ENTITY_H

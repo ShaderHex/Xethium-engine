@@ -1,68 +1,36 @@
 #include "Component.h"
-#include <iostream>
 
-Entity Component::entities[MAX_ENTITIES];
-int Component::entityCount = 0;
-int Component::selectedEntity = 0;
-const char* Component::texturePath;
+// Global Variables
+std::vector<Entity> entities;
+int selectedEntity = -1; // No entity selected by default
 
-void Component::CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath) {
-    if (entityCount < MAX_ENTITIES) {
-        entities[entityCount].position = position;
-        entities[entityCount].size = size;
-        entities[entityCount].color = color;
-
-        if (texturePath != nullptr) {
-            entities[entityCount].texture = LoadTexture(texturePath);
-
-            if (entities[entityCount].texture.id == 0) {
-                std::cerr << "Failed to load texture: " << texturePath << std::endl;
-            }
-        }
-
-        entityCount++;
-        printf("Entity Created: Position(%f, %f)\n", position.x, position.y);
+// Create a new entity
+void CreateEntity(Vector2 position, Vector2 size, Color color, const char* texturePath) {
+    Entity entity = { position, size, color, false, {}, texturePath ? texturePath : "" };
+    if (texturePath) {
+        entity.texture = LoadTexture(texturePath);
+        entity.hasTexture = (entity.texture.id != 0);
     }
+    entities.push_back(entity);
 }
 
-
-void Component::UpdateEntities(float deltaTime) {
-
-}
-
-void Component::RenderEntities() {
-    for (int i = 0; i < entityCount; i++) {
-        Entity& entity = entities[i];
-
-        DrawRectangleV(entity.position, entity.size, entity.color);
-
-        if (entity.texture.id != 0) {
-            float scaleX = entity.size.x / (float)entity.texture.width;
-            float scaleY = entity.size.y / (float)entity.texture.height;
-
-            DrawTextureEx(entity.texture, entity.position, 0.0f, scaleX, WHITE);
-            std::cout << "Rendering!\n";
+// Render all entities
+void RenderEntities() {
+    for (const Entity& entity : entities) {
+        if (entity.hasTexture) {
+            DrawTextureEx(entity.texture, entity.position, 0.0f, 1.0f, WHITE);
         }
         else {
-            std::cout << "Error when rendering image!\n";
+            DrawRectangleV(entity.position, entity.size, entity.color);
         }
     }
 }
 
-
-
-void Component::PrintEntities() {
-    for (int i = 0; i < Component::entityCount; ++i) {
-        Entity& entity = Component::entities[i];
-        std::cout << "Entity " << i << ":" << std::endl;
-        std::cout << "  Position: (" << entity.position.x << ", " << entity.position.y << ")" << std::endl;
-        std::cout << "  Size: (" << entity.size.x << ", " << entity.size.y << ")" << std::endl;
-        std::cout << "  Color: (" << (int)entity.color.r << ", " << (int)entity.color.g << ", " << (int)entity.color.b << ")" << std::endl;
-    }
-}
-
-void Component::Shutdown() {
-    for (int i = 0; i < entityCount; i++) {
-        UnloadTexture(entities[i].texture);
+// Clean up textures when exiting
+void CleanupEntities() {
+    for (auto& entity : entities) {
+        if (entity.hasTexture) {
+            UnloadTexture(entity.texture);
+        }
     }
 }
